@@ -1,12 +1,15 @@
 ﻿using HarmonyLib;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using UnityEngine;
 
 namespace ErrorBlame
 {
+
     [HarmonyPatch(typeof(Resources))]
-    public class ResourcesPatch
+    internal sealed class ResourcesPatch
     {
         [HarmonyPatch("Load", typeof(string), typeof(Type))]
         [HarmonyPostfix]
@@ -19,13 +22,25 @@ namespace ErrorBlame
                 $"{text.name} - {text.text.Split('\n').Length} - {replacement.text.Split('\n').Length}");
             __result = replacement;
         }
-        
+
         //could be used for full bug fables plus support
         //[HarmonyPatch(typeof(AssetBundle), "LoadAllAssets", typeof(Type)) ]
         //[HarmonyPostfix]
         //private static void LoadAllAssets(ref object __result)
         //{
         //    return;
+        //}
+        
+        //[HarmonyPatch(typeof(MainManager), "Start")]
+        //internal sealed class StartMainPatch
+        //{
+        //    private static void Postfix()
+        //    {
+        //        if (!GameObject.Find("debug"))
+        //        {
+        //            new GameObject("debug").AddComponent<ErrorBlameCore.debug>();
+        //        }
+        //    }
         //}
 
         [HarmonyPatch("LoadAll", typeof(string), typeof(Type))]
@@ -48,26 +63,26 @@ namespace ErrorBlame
             }
         }
     }
-
-    //[HarmonyPatch(typeof(CardGame), "StartCard")]
-    //public class CardGamePatches
-    //{
-    //    [HarmonyPatch("StartCard")]
-    //    [HarmonyPostfix]
-    //    private static void StartCardPrefix(CardGame __instance)
-    //    {
-    //        __instance.carddiag = ErrorBlameCore.GetFile("CardDialogue").text.Split('\n');
-    //    }
-    //
-    //    [HarmonyPatch("LoadCardData")]
-    //    [HarmonyPostfix]
-    //    private static void LoadCardDataPrefix(CardGame __instance)
-    //    {
-    //        string[] cards = ErrorBlameCore.GetFile("CardText").text.Split('\n');
-    //        for (int i = 0; i < cards.Length; i++)
-    //        {
-    //            __instance.carddata[i].desc = cards[i].Split('@')[0];
-    //        }
-    //    }
-    //}
+    [HarmonyPatch(typeof(MainManager))]
+    internal sealed class MainManagerPatch
+    {
+        [HarmonyPatch("OrganizeLines"), HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> RemoveEnglishCheck(IEnumerable<CodeInstruction> instructions)
+        {
+            return new CodeMatcher(instructions).MatchForward(
+                true,
+                new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(MainManager), "languageid")),
+                new CodeMatch(OpCodes.Ldc_I4_0),
+                new CodeMatch(OpCodes.Ble)
+            ).Advance(-1).SetOpcodeAndAdvance(OpCodes.Ldc_I4_M1).InstructionEnumeration();
+        }
+        [HarmonyPatch("LateUpdate"), HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> RemoveEnglishMessageBreak(IEnumerable<CodeInstruction> instructions)
+        {
+            CodeMatcher codeMatcher = new CodeMatcher(instructions).Start();
+            foreach (CodeInstruction _ in codeMatcher.InstructionsWithOffsets(0, 6))
+                codeMatcher.SetAndAdvance(OpCodes.Nop, null);
+            return codeMatcher.InstructionEnumeration();
+        }
+    }
 }

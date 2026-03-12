@@ -10,7 +10,7 @@ namespace ErrorBlame
 {
     [BepInPlugin("com.bugfables.errorblame", "Error Blame: Eternal Fruit", "1.0.0")]
     [BepInProcess("Bug Fables.exe")]
-    public class ErrorBlameCore : BaseUnityPlugin
+    public sealed class ErrorBlameCore : BaseUnityPlugin
     {
         internal new static ManualLogSource Logger;
         private ConfigEntry<bool> _bfPlusSupport;
@@ -39,7 +39,44 @@ namespace ErrorBlame
             {
                 Logger.LogError(ex);
             }
+
+            //new GameObject("debug").AddComponent<Debug>();
         }
+
+        //internal sealed class Debug : MonoBehaviour
+        //{
+        //    public void Start()
+        //    {
+        //        DontDestroyOnLoad(this);
+        //    }
+        //    public void Update()
+        //    {
+        //        if (Input.GetKeyDown(KeyCode.Y))
+        //        {
+        //            Bundle.Unload(true);
+        //            Bundle = AssetBundle.LoadFromFile($"{Paths.PluginPath}/ErrorBlame/errorblame");
+        //            SceneManager.LoadScene(0);
+        //            Logger.LogInfo("Reloaded");
+        //        }
+        //        
+        //        if (Input.GetKeyDown(KeyCode.G))
+        //        {
+        //            TextAsset[] collection = Resources.LoadAll<TextAsset>("");
+        //            Logger.LogInfo("------------------");
+        //            foreach (TextAsset text in Bundle.LoadAllAssets<TextAsset>())
+        //            {
+        //                TextAsset og = collection.FirstOrDefault(i => i.name == text.name)!;
+        //                if (og.text.Split('\n').Length != text.text.Split('\n').Length)
+        //                {
+        //                    Logger.LogInfo(
+        //                        $"{text.name} - OG:{og.text.Split('\n').Length} - EB:{text.text.Split('\n').Length}");
+        //                }
+        //            }
+        //            Logger.LogInfo("------------------");
+        //        }
+        //    }
+        //}
+
 
         private bool CheckBlacklist()
         {
