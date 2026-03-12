@@ -7,7 +7,6 @@ using UnityEngine;
 
 namespace ErrorBlame
 {
-
     [HarmonyPatch(typeof(Resources))]
     internal sealed class ResourcesPatch
     {
@@ -15,33 +14,15 @@ namespace ErrorBlame
         [HarmonyPostfix]
         private static void Load(string path, Type systemTypeInstance, ref object __result)
         {
-            if (__result is not TextAsset text) return;
+            if (__result is not TextAsset text)
+                return;
             TextAsset replacement = ErrorBlameCore.GetFile(path.Split('/').Last());
-            if (!replacement) return;
+            if (!replacement)
+                return;
             ErrorBlameCore.Logger.LogInfo(
                 $"{text.name} - {text.text.Split('\n').Length} - {replacement.text.Split('\n').Length}");
             __result = replacement;
         }
-
-        //could be used for full bug fables plus support
-        //[HarmonyPatch(typeof(AssetBundle), "LoadAllAssets", typeof(Type)) ]
-        //[HarmonyPostfix]
-        //private static void LoadAllAssets(ref object __result)
-        //{
-        //    return;
-        //}
-        
-        //[HarmonyPatch(typeof(MainManager), "Start")]
-        //internal sealed class StartMainPatch
-        //{
-        //    private static void Postfix()
-        //    {
-        //        if (!GameObject.Find("debug"))
-        //        {
-        //            new GameObject("debug").AddComponent<ErrorBlameCore.debug>();
-        //        }
-        //    }
-        //}
 
         [HarmonyPatch("LoadAll", typeof(string), typeof(Type))]
         [HarmonyPostfix]
@@ -63,10 +44,12 @@ namespace ErrorBlame
             }
         }
     }
+
     [HarmonyPatch(typeof(MainManager))]
     internal sealed class MainManagerPatch
     {
-        [HarmonyPatch("OrganizeLines"), HarmonyTranspiler]
+        [HarmonyPatch("OrganizeLines")]
+        [HarmonyTranspiler]
         private static IEnumerable<CodeInstruction> RemoveEnglishCheck(IEnumerable<CodeInstruction> instructions)
         {
             return new CodeMatcher(instructions).MatchForward(
@@ -76,7 +59,9 @@ namespace ErrorBlame
                 new CodeMatch(OpCodes.Ble)
             ).Advance(-1).SetOpcodeAndAdvance(OpCodes.Ldc_I4_M1).InstructionEnumeration();
         }
-        [HarmonyPatch("LateUpdate"), HarmonyTranspiler]
+
+        [HarmonyPatch("LateUpdate")]
+        [HarmonyTranspiler]
         private static IEnumerable<CodeInstruction> RemoveEnglishMessageBreak(IEnumerable<CodeInstruction> instructions)
         {
             CodeMatcher codeMatcher = new CodeMatcher(instructions).Start();
